@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>moodquote — say something back</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --card: rgba(23, 23, 31, 0.7);
+    --text: #e8e8f0;
+    --muted: #7a7a90;
+    --accent: #8b7fff;
+    --accent-2: #ff7fb8;
+    --glow: 139, 127, 255;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 1.5rem;
+    overflow-x: hidden;
+    position: relative;
+    transition: background 0.8s ease;
+  }
+
+  /* Animated aura background */
+  body::before,
+  body::after {
+    content: "";
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.5;
+    z-index: 0;
+    transition: background 0.8s ease;
+    pointer-events: none;
+  }
+  body::before {
+    width: 500px; height: 500px;
+    top: -100px; left: -100px;
+    background: var(--accent);
+    animation: float1 18s ease-in-out infinite;
+  }
+  body::after {
+    width: 450px; height: 450px;
+    bottom: -120px; right: -100px;
+    background: var(--accent-2);
+    animation: float2 22s ease-in-out infinite;
+  }
+
+  @keyframes float1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(80px, 60px) scale(1.15); }
+  }
+  @keyframes float2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-70px, -50px) scale(1.1); }
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 620px;
+    background: var(--card);
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 24px;
+    padding: 2.25rem;
+    box-shadow:
+      0 30px 80px rgba(0,0,0,0.5),
+      inset 0 1px 0 rgba(255,255,255,0.06);
+    animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(24px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.75rem;
+  }
+
+  h1 {
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  h1 .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+  }
+
+  .sub {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-bottom: 1.75rem;
+    line-height: 1.5;
+  }
+
+  .moods {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .mood {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text);
+    padding: 0.85rem 0.5rem;
+    border-radius: 14px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .mood .emoji { font-size: 1.25rem; line-height: 1; }
+  .mood .label { font-size: 0.8rem; opacity: 0.9; }
+
+  .mood:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(var(--glow), 0.5);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(var(--glow), 0.15);
+  }
+
+  .mood.active {
+    background: linear-gradient(135deg, rgba(var(--glow), 0.25), rgba(var(--glow), 0.1));
+    border-color: var(--accent);
+    box-shadow: 0 8px 24px rgba(var(--glow), 0.35);
+  }
+
+  .mood.active .label { font-weight: 600; }
+
+  .quote-box {
+    position: relative;
+    background: rgba(0,0,0,0.25);
+    border-radius: 18px;
+    padding: 2rem 1.75rem;
+    min-height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.05);
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+    transition: border-color 0.4s ease;
+  }
+
+  .quote-box::before {
+    content: """;
+    position: absolute;
+    top: -30px; left: 10px;
+    font-size: 9rem;
+    color: rgba(var(--glow), 0.12);
+    font-family: Georgia, serif;
+    line-height: 1;
+    pointer-events: none;
+    transition: color 0.4s ease;
+  }
+
+  .quote {
+    font-size: 1.1rem;
+    line-height: 1.65;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    position: relative;
+    z-index: 1;
+    font-weight: 400;
+  }
+
+  .quote.fade { opacity: 0; transform: translateY(8px); }
+
+  .quote .author {
+    display: block;
+    margin-top: 1rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+
+  .placeholder {
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .actions {
+    display: flex;
+    gap: 0.6rem;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 0.85rem;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+    color: var(--text);
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+
+  .btn:hover { background: rgba(255,255,255,0.07); transform: translateY(-2px); }
+  .btn:active { transform: translateY(0); }
+
+  .btn.primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0a0a0f;
+    border-color: transparent;
+    font-weight: 600;
+  }
+  .btn.primary:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 10px 30px rgba(var(--glow), 0.4);
+  }
+
+  .btn.danger { color: #ff8b8b; }
+
+  /* History panel */
+  .panel {
+    margin-top: 1.5rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding-top: 1.25rem;
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .panel.open { grid-template-rows: 1fr; }
+  .panel-inner { overflow: hidden; }
+
+  .panel h2 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 0.85rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .clear-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 0.7rem;
+    cursor: pointer;
+    font-family: inherit;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+  .clear-btn:hover { color: #ff8b8b; background: rgba(255,139,139,0.1); }
+
+  .history-item {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.6rem 0;
+    font-size: 0.82rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    align-items: baseline;
+    animation: slideIn 0.4s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .history-item:last-child { border-bottom: none; }
+  .history-item .time { color: var(--muted); min-width: 95px; font-size: 0.75rem; }
+  .history-item .m {
+    color: var(--accent);
+    min-width: 72px;
+    font-weight: 500;
+    text-transform: capitalize;
+  }
+  .history-item .q { color: var(--text); opacity: 0.8; flex: 1; }
+
+  .empty-history {
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-style: italic;
+    padding: 0.5rem 0;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: rgba(30,30,40,0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text);
+    padding: 0.75rem 1.25rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 100;
+    pointer-events: none;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Add-quote modal */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .modal.open { opacity: 1; pointer-events: auto; }
+
+  .modal-card {
+    width: 100%;
+    max-width: 460px;
+    background: #17171f;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 1.75rem;
+    transform: scale(0.95);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+  }
+  .modal.open .modal-card { transform: scale(1); }
+
+  .modal-card h3 {
+    font-size: 1.1rem;
+    margin-bottom: 1.25rem;
+    font-weight: 600;
+  }
+
+  .field { margin-bottom: 1rem; }
+  .field label {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+  }
+  .field input,
+  .field textarea,
+  .field select {
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 0.7rem 0.85rem;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.9rem;
+    transition: border-color 0.2s ease;
+    resize: vertical;
+  }
+  .field input:focus,
+  .field textarea:focus,
+  .field select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .field textarea { min-height: 80px; }
+  .field select option { background: #17171f; }
+
+  .modal-actions {
+    display: flex;
+    gap: 0.6rem;
+    margin-top: 1.25rem;
+  }
+
+  .footer-hint {
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 1.25rem;
+    opacity: 0.6;
+  }
+
+  @media (max-width: 520px) {
+    .app { padding: 1.5rem; }
+    .moods { grid-template-columns: repeat(2, 1fr); }
+    .history-item .q { display: none; }
+    h1 { font-size: 1.15rem; }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1><span class="dot"></span>moodquote</h1>
+      <button class="btn" id="openAdd" style="flex:0; padding:0.5rem 0.9rem; font-size:0.8rem;">+ Add quote</button>
+    </header>
+
+    <p class="sub">Tell me how you feel. I'll say something back.</p>
+
+    <div class="moods" id="moods"></div>
+
+    <div class="quote-box" id="quoteBox">
+      <div class="quote placeholder" id="quote">Pick a mood to begin…</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="random">🎲 Surprise me</button>
+      <button class="btn" id="toggleHistory">📜 History</button>
+      <button class="btn primary" id="another">✨ Another</button>
+    </div>
+
+    <div class="panel" id="historyPanel">
+      <div class="panel-inner">
+        <h2>
+          <span>Recent moods</span>
+          <span>
+            <button class="clear-btn" id="exportBtn">Export</button>
+            <button class="clear-btn" id="clearBtn">Clear</button>
+          </span>
+        </h2>
+        <div id="historyList"></div>
+      </div>
+    </div>
+
+    <p class="footer-hint">Everything stays on your device. No servers, no tracking.</p>
+  </div>
+
+  <!-- Add quote modal -->
+  <div class="modal" id="modal">
+    <div class="modal-card">
+      <h3>Add your own quote</h3>
+      <div class="field">
+        <label>Mood</label>
+        <select id="addMood"></select>
+      </div>
+      <div class="field">
+        <label>Quote</label>
+        <textarea id="addText" placeholder="Something worth saying back…"></textarea>
+      </div>
+      <div class="field">
+        <label>Author (optional)</label>
+        <input id="addAuthor" placeholder="Unknown" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="cancelAdd">Cancel</button>
+        <button class="btn primary" id="confirmAdd">Add quote</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+/* ---------- Data ---------- */
+const DEFAULT_QUOTES = {
+  happy: [
+    ["Happiness is not something ready made. It comes from your own actions.", "Dalai Lama"],
+    ["The most wasted of days is one without laughter.", "E.E. Cummings"],
+    ["Joy is not in things; it is in us.", "Richard Wagner"],
+  ],
+  sad: [
+    ["Tears come from the heart and not from the brain.", "Leonardo da Vinci"],
+    ["The wound is the place where the light enters you.", "Rumi"],
+    ["Even the darkest night will end and the sun will rise.", "Victor Hugo"],
+  ],
+  tired: [
+    ["Rest is not idleness.", "John Lubbock"],
+    ["Take rest; a field that has rested gives a bountiful crop.", "Ovid"],
+    ["Almost everything will work again if you unplug it for a few minutes.", "Anne Lamott"],
+  ],
+  motivated: [
+    ["The secret of getting ahead is getting started.", "Mark Twain"],
+    ["Do what you can, with what you have, where you are.", "Theodore Roosevelt"],
+    ["It always seems impossible until it's done.", "Nelson Mandela"],
+  ],
+  angry: [
+    ["For every minute you remain angry, you give up sixty seconds of peace of mind.", "Ralph Waldo Emerson"],
+    ["Speak when you are angry and you will make the best speech you will ever regret.", "Ambrose Bierce"],
+    ["Holding on to anger is like drinking poison and expecting the other person to die.", "Buddha"],
+  ],
+  lost: [
+    ["Not all those who wander are lost.", "J.R.R. Tolkien"],
+    ["The only way out is through.", "Robert Frost"],
+    ["You are not behind. You are exactly where you need to be.", "Unknown"],
+  ],
+};
+
+const MOOD_META = {
+  happy:     { emoji: "😊", color: "#ffd166", accent: "#ffb84d", accent2: "#ffe08a" },
+  sad:       { emoji: "😢", color: "#6ea8fe", accent: "#4d7cff", accent2: "#8bb8ff" },
+  tired:     { emoji: "😴", color: "#a78bfa", accent: "#8b7fff", accent2: "#c4b5fd" },
+  motivated: { emoji: "🔥", color: "#fb7185", accent: "#ff5c7c", accent2: "#ffa0b0" },
+  angry:     { emoji: "😠", color: "#f87171", accent: "#ef4444", accent2: "#fca5a5" },
+  lost:      { emoji: "🌫️", color: "#94a3b8", accent: "#64748b", accent2: "#cbd5e1" },
+};
+
+const HISTORY_KEY = "moodquote_history_v2";
+const CUSTOM_KEY  = "moodquote_custom_v2";
+
+/* ---------- State ---------- */
+let quotes = loadQuotes();
+let currentMood = null;
+
+/* ---------- Elements ---------- */
+const moodsEl       = document.getElementById("moods");
+const quoteEl       = document.getElementById("quote");
+const quoteBox      = document.getElementById("quoteBox");
+const historyPanel  = document.getElementById("historyPanel");
+const historyListEl = document.getElementById("historyList");
+const modal         = document.getElementById("modal");
+const toastEl       = document.getElementById("toast");
+
+/* ---------- Storage ---------- */
+function loadQuotes() {
+  const merged = JSON.parse(JSON.stringify(DEFAULT_QUOTES));
+  const custom = safeParse(localStorage.getItem(CUSTOM_KEY)) || {};
+  for (const mood in custom) {
+    if (!merged[mood]) merged[mood] = [];
+    merged[mood] = merged[mood].concat(custom[mood]);
+  }
+  return merged;
+}
+
+function saveCustomQuote(mood, text, author) {
+  const custom = safeParse(localStorage.getItem(CUSTOM_KEY)) || {};
+  if (!custom[mood]) custom[mood] = [];
+  custom[mood].push([text, author || "You"]);
+  localStorage.setItem(CUSTOM_KEY, JSON.stringify(custom));
+  quotes = loadQuotes();
+}
+
+function loadHistory() { return safeParse(localStorage.getItem(HISTORY_KEY)) || []; }
+function saveHistory(h) { localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); }
+
+function safeParse(str) {
+  try { return JSON.parse(str); } catch { return null; }
+}
+
+/* ---------- Render moods ---------- */
+Object.keys(MOOD_META).forEach(mood => {
+  const meta = MOOD_META[mood];
+  const btn = document.createElement("button");
+  btn.className = "mood";
+  btn.dataset.mood = mood;
+  btn.innerHTML = `<span class="emoji">${meta.emoji}</span><span class="label">${mood}</span>`;
+  btn.addEventListener("click", () => selectMood(mood));
+  moodsEl.appendChild(btn);
+});
+
+/* ---------- Mood selection ---------- */
+function selectMood(mood) {
+  currentMood = mood;
+  const meta = MOOD_META[mood];
+
+  document.documentElement.style.setProperty("--accent", meta.accent);
+  document.documentElement.style.setProperty("--accent-2", meta.accent2);
+  document.documentElement.style.setProperty("--glow", hexToRgb(meta.accent));
+
+  document.querySelectorAll(".mood").forEach(b => {
+    b.classList.toggle("active", b.dataset.mood === mood);
+  });
+
+  showQuote(mood, true);
+}
+
+/* ---------- Show quote ---------- */
+function showQuote(mood, save) {
+  const list = quotes[mood] || [];
+  if (!list.length) return;
+
+  const [text, author] = list[Math.floor(Math.random() * list.length)];
+
+  quoteEl.classList.add("fade");
+  setTimeout(() => {
+    quoteEl.classList.remove("placeholder");
+    quoteEl.innerHTML = `"${text}"<span class="author">— ${author}</span>`;
+    quoteEl.classList.remove("fade");
+  }, 180);
+
+  if (save) {
+    const history = loadHistory();
+    history.push({
+      t: Date.now(),
+      time: new Date().toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
+      mood,
+      quote: text,
+      author,
+    });
+    saveHistory(history.slice(-100));
+    renderHistory();
+  }
+}
+
+/* ---------- History ---------- */
+function renderHistory() {
+  const history = loadHistory();
+  if (!history.length) {
+    historyListEl.innerHTML = '<p class="empty-history">No moods yet. Feel something!</p>';
+    return;
+  }
+  historyListEl.innerHTML = history
+    .slice()
+    .reverse()
+    .slice(0, 20)
+    .map(e => `
+      <div class="history-item">
+        <span class="time">${e.time}</span>
+        <span class="m">${MOOD_META[e.mood]?.emoji || ""} ${e.mood}</span>
+        <span class="q">${escapeHtml(e.quote.length > 70 ? e.quote.slice(0, 70) + "…" : e.quote)}</span>
+      </div>
+    `).join("");
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+
+/* ---------- Buttons ---------- */
+document.getElementById("another").addEventListener("click", () => {
+  if (!currentMood) {
+    currentMood = randomMood();
+    selectMood(currentMood);
+    return;
+  }
+  showQuote(currentMood, true);
+});
+
+document.getElementById("random").addEventListener("click", () => {
+  selectMood(randomMood());
+});
+
+document.getElementById("toggleHistory").addEventListener("click", () => {
+  historyPanel.classList.toggle("open");
+});
+
+document.getElementById("clearBtn").addEventListener("click", () => {
+  if (!loadHistory().length) return toast("Nothing to clear");
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+  toast("History cleared");
+});
+
+document.getElementById("exportBtn").addEventListener("click", () => {
+  const history = loadHistory();
+  if (!history.length) return toast("Nothing to export");
+  const blob = new Blob([JSON.stringify(history, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `moodquote-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast("Exported!");
+});
+
+/* ---------- Add quote modal ---------- */
+const addMoodSelect = document.getElementById("addMood");
+Object.keys(MOOD_META).forEach(mood => {
+  const opt = document.createElement("option");
+  opt.value = mood;
+  opt.textContent = `${MOOD_META[mood].emoji}  ${mood}`;
+  addMoodSelect.appendChild(opt);
+});
+
+document.getElementById("openAdd").addEventListener("click", () => {
+  if (currentMood) addMoodSelect.value = currentMood;
+  modal.classList.add("open");
+  setTimeout(() => document.getElementById("addText").focus(), 200);
+});
+
+document.getElementById("cancelAdd").addEventListener("click", () => modal.classList.remove("open"));
+
+document.getElementById("confirmAdd").addEventListener("click", () => {
+  const mood = addMoodSelect.value;
+  const text = document.getElementById("addText").value.trim();
+  const author = document.getElementById("addAuthor").value.trim();
+  if (!text) return toast("Write something first");
+  saveCustomQuote(mood, text, author);
+  modal.classList.remove("open");
+  document.getElementById("addText").value = "";
+  document.getElementById("addAuthor").value = "";
+  toast("Quote added ✨");
+  if (mood === currentMood) showQuote(mood, false);
+});
+
+modal.addEventListener("click", e => { if (e.target === modal) modal.classList.remove("open"); });
+
+/* ---------- Helpers ---------- */
+function randomMood() {
+  const keys = Object.keys(MOOD_META);
+  return keys[Math.floor(Math.random() * keys.length)];
+}
+
+function hexToRgb(hex) {
+  const n = parseInt(hex.replace("#", ""), 16);
+  return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+}
+
+let toastTimer;
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2000);
+}
+
+/* ---------- Keyboard shortcuts ---------- */
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+  if (e.key === " ") { e.preventDefault(); document.getElementById("another").click(); }
+  if (e.key === "r" || e.key === "R") document.getElementById("random").click();
+  if (e.key === "h" || e.key === "H") document.getElementById("toggleHistory").click();
+  if (e.key === "Escape") modal.classList.remove("open");
+});
+
+/* ---------- Init ---------- */
+renderHistory();
+</script>
+</body>
+</html>
