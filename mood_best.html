@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>moodquote 💭</title>
+<style>
+  :root {
+    --bg: #0f0f14;
+    --card: #17171f;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --accent: #8b7fff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 50% 0%, #1a1a2e 0%, var(--bg) 60%);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 1.5rem;
+    transition: background 0.6s ease;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 560px;
+    background: var(--card);
+    border: 1px solid #26262f;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.02em;
+  }
+
+  .sub {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .moods {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .mood {
+    background: #1e1e28;
+    border: 1px solid #2a2a36;
+    color: var(--text);
+    padding: 0.75rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+  }
+
+  .mood:hover {
+    background: #26262f;
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  .mood.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0f0f14;
+    font-weight: 600;
+  }
+
+  .quote-box {
+    background: #12121a;
+    border-radius: 14px;
+    padding: 1.5rem;
+    min-height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border: 1px solid #22222c;
+    margin-bottom: 1.25rem;
+  }
+
+  .quote {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    transition: opacity 0.3s ease;
+  }
+
+  .quote .author {
+    display: block;
+    margin-top: 0.75rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+
+  .placeholder {
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .actions {
+    display: flex;
+    gap: 0.6rem;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 0.75rem;
+    border-radius: 12px;
+    border: 1px solid #2a2a36;
+    background: #1e1e28;
+    color: var(--text);
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn:hover { background: #26262f; }
+  .btn.primary {
+    background: var(--accent);
+    color: #0f0f14;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  .btn.primary:hover { filter: brightness(1.1); }
+
+  .history {
+    margin-top: 1.5rem;
+    border-top: 1px solid #22222c;
+    padding-top: 1.25rem;
+    display: none;
+  }
+
+  .history.show { display: block; }
+
+  .history h2 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+  }
+
+  .history-item {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    font-size: 0.85rem;
+    border-bottom: 1px solid #1c1c24;
+  }
+
+  .history-item:last-child { border-bottom: none; }
+
+  .history-item .time { color: var(--muted); min-width: 110px; }
+  .history-item .m { color: var(--accent); min-width: 80px; }
+  .history-item .q { color: var(--text); opacity: 0.85; }
+
+  .empty-history { color: var(--muted); font-size: 0.85rem; font-style: italic; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <h1>moodquote 💭</h1>
+    <p class="sub">Tell me how you feel. I'll say something back.</p>
+
+    <div class="moods" id="moods"></div>
+
+    <div class="quote-box">
+      <div class="quote placeholder" id="quote">Pick a mood to begin…</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="toggleHistory">History</button>
+      <button class="btn primary" id="another">Another</button>
+    </div>
+
+    <div class="history" id="history">
+      <h2>Recent moods</h2>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+<script>
+const QUOTES = {
+  happy: [
+    ["Happiness is not something ready made. It comes from your own actions.", "Dalai Lama"],
+    ["The most wasted of days is one without laughter.", "E.E. Cummings"],
+    ["Joy is not in things; it is in us.", "Richard Wagner"],
+  ],
+  sad: [
+    ["Tears come from the heart and not from the brain.", "Leonardo da Vinci"],
+    ["The wound is the place where the light enters you.", "Rumi"],
+    ["Even the darkest night will end and the sun will rise.", "Victor Hugo"],
+  ],
+  tired: [
+    ["Rest is not idleness.", "John Lubbock"],
+    ["Take rest; a field that has rested gives a bountiful crop.", "Ovid"],
+    ["Almost everything will work again if you unplug it for a few minutes.", "Anne Lamott"],
+  ],
+  motivated: [
+    ["The secret of getting ahead is getting started.", "Mark Twain"],
+    ["Do what you can, with what you have, where you are.", "Theodore Roosevelt"],
+    ["It always seems impossible until it's done.", "Nelson Mandela"],
+  ],
+  angry: [
+    ["For every minute you remain angry, you give up sixty seconds of peace of mind.", "Ralph Waldo Emerson"],
+    ["Speak when you are angry and you will make the best speech you will ever regret.", "Ambrose Bierce"],
+    ["Holding on to anger is like drinking poison and expecting the other person to die.", "Buddha"],
+  ],
+  lost: [
+    ["Not all those who wander are lost.", "J.R.R. Tolkien"],
+    ["The only way out is through.", "Robert Frost"],
+    ["You are not behind. You are exactly where you need to be.", "Unknown"],
+  ],
+};
+
+const MOODS = Object.keys(QUOTES);
+const HISTORY_KEY = "moodquote_history";
+
+let currentMood = null;
+
+const moodsEl = document.getElementById("moods");
+const quoteEl = document.getElementById("quote");
+const historyEl = document.getElementById("history");
+const historyListEl = document.getElementById("historyList");
+
+// Build mood buttons
+MOODS.forEach(mood => {
+  const btn = document.createElement("button");
+  btn.className = "mood";
+  btn.textContent = mood;
+  btn.dataset.mood = mood;
+  btn.addEventListener("click", () => selectMood(mood));
+  moodsEl.appendChild(btn);
+});
+
+function selectMood(mood) {
+  currentMood = mood;
+  document.querySelectorAll(".mood").forEach(b => {
+    b.classList.toggle("active", b.dataset.mood === mood);
+  });
+  showQuote(mood, true);
+}
+
+function showQuote(mood, save) {
+  const [text, author] = QUOTES[mood][Math.floor(Math.random() * QUOTES[mood].length)];
+  quoteEl.style.opacity = 0;
+  setTimeout(() => {
+    quoteEl.classList.remove("placeholder");
+    quoteEl.innerHTML = `"${text}"<span class="author">— ${author}</span>`;
+    quoteEl.style.opacity = 1;
+  }, 150);
+
+  if (save) {
+    const history = loadHistory();
+    history.push({
+      time: new Date().toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
+      mood,
+      quote: text,
+    });
+    saveHistory(history.slice(-50));
+    renderHistory();
+  }
+}
+
+function loadHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(h) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+}
+
+function renderHistory() {
+  const history = loadHistory();
+  if (!history.length) {
+    historyListEl.innerHTML = '<p class="empty-history">No moods yet. Feel something!</p>';
+    return;
+  }
+  historyListEl.innerHTML = history.slice().reverse().slice(0, 10).map(entry => `
+    <div class="history-item">
+      <span class="time">${entry.time}</span>
+      <span class="m">${entry.mood}</span>
+      <span class="q">${entry.quote.length > 50 ? entry.quote.slice(0, 50) + "…" : entry.quote}</span>
+    </div>
+  `).join("");
+}
+
+document.getElementById("another").addEventListener("click", () => {
+  if (!currentMood) {
+    currentMood = MOODS[Math.floor(Math.random() * MOODS.length)];
+    document.querySelectorAll(".mood").forEach(b => {
+      b.classList.toggle("active", b.dataset.mood === currentMood);
+    });
+  }
+  showQuote(currentMood, true);
+});
+
+document.getElementById("toggleHistory").addEventListener("click", () => {
+  historyEl.classList.toggle("show");
+  renderHistory();
+});
+
+renderHistory();
+</script>
+</body>
+</html>
